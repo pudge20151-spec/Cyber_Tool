@@ -56,42 +56,66 @@ class NetworkScanner:
         return self.results
 
     def ping_sweep(self, subnet):
-        """Ping sweep a subnet (e.g., 192.168.1)"""
+        """Ping sweep a subnet (e.g., 192.168.1) with threading for speed"""
         self.results = {"subnet": subnet, "alive_hosts": []}
-        for i in range(1, 255):
-            ip = f"{subnet}.{i}"
+        import threading
+
+        def _ping_host(ip):
             result = self.ping(ip)
             if result["alive"]:
                 self.results["alive_hosts"].append(ip)
+
+        threads = []
+        for i in range(1, 255):
+            ip = f"{subnet}.{i}"
+            t = threading.Thread(target=_ping_host, args=(ip,))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join(timeout=10)
+
+        self.results["alive_hosts"].sort(key=lambda x: int(x.split('.')[-1]))
         return self.results
 
     def port_scan(self, host, ports=None):
-        """Scan common ports on a host"""
-        if not self.has_privileges:
-            return {
-                "error": "Port scanning requires root/admin privileges (Scapy needs raw sockets)",
-                "hint": "Run with sudo (Linux) or as Administrator (Windows)"
-            }
+        """Scan common ports on a host (TCP connect scan - no admin required)"""
         if ports is None:
             ports = [21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445,
                      993, 995, 1433, 1521, 2049, 3306, 3389, 5432, 5900, 5985,
                      5986, 6379, 8080, 8443, 9000, 27017]
         self.results = {"host": host, "open_ports": []}
-        for port in ports:
+
+        def _scan_port(port):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(1)
+                sock.settimeout(2)
                 result = sock.connect_ex((host, port))
                 if result == 0:
                     service = self._get_service_name(port)
+                    banner = self._grab_banner(host, port)
                     self.results["open_ports"].append({
                         "port": port,
                         "service": service,
-                        "banner": self._grab_banner(host, port)
+                        "banner": banner
                     })
                 sock.close()
             except Exception:
-                continue
+                pass
+
+        # Use threading for faster scanning
+        import threading
+        threads = []
+        for port in ports:
+            t = threading.Thread(target=_scan_port, args=(port,))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join(timeout=5)
+
+        # Sort by port number
+        self.results["open_ports"].sort(key=lambda x: x["port"])
         return self.results
 
     def _grab_banner(self, host, port):
@@ -120,12 +144,7 @@ class NetworkScanner:
         return services.get(port, "Unknown")
 
     def traceroute(self, host):
-        """Perform traceroute"""
-        if not self.has_privileges:
-            return {
-                "error": "Traceroute requires root/admin privileges (Scapy needs raw sockets)",
-                "hint": "Run with sudo (Linux) or as Administrator (Windows)"
-            }
+        """Perform traceroute (tracert on Windows works without admin)"""
         self.results = {"host": host, "hops": []}
         try:
             import platform

@@ -1941,6 +1941,21 @@ class CyberTool:
         if "error" in results:
             console.print(f"{results['error']}")
             return
+
+        # Memory Health
+        health = results.get("memory_health", {})
+        if health:
+            status = health.get("status", "OK")
+            color = "green" if status == "OK" else "yellow" if status == "WARNING" else "red"
+            console.print(Panel(
+                f"Status: [{color}]{status}[/]",
+                title="Memory Health",
+                border_style=color
+            ))
+            for w in health.get("warnings", []):
+                console.print(f"  [!] {w}")
+
+        # Memory Usage
         mem = results.get("memory", {})
         if mem:
             table = Table(title="Memory Usage", box=box.ROUNDED)
@@ -1951,9 +1966,13 @@ class CyberTool:
             table.add_row("Available", f"{mem.get('available', 0)} GB")
             table.add_row("Usage", f"{mem.get('percent', 0)}%")
             console.print(table)
+
+        # Swap
         swap = results.get("swap", {})
         if swap:
             console.print(f"Swap: {swap.get('used', 0)}/{swap.get('total', 0)} GB ({swap.get('percent', 0)}%)")
+
+        # Top Memory Processes
         top_procs = results.get("top_processes", [])
         if top_procs:
             proc_table = Table(title="Top Memory Processes", box=box.ROUNDED)
@@ -1961,9 +1980,25 @@ class CyberTool:
             proc_table.add_column("Name", style="white")
             proc_table.add_column("Memory %", style="yellow")
             proc_table.add_column("Memory MB", style="green")
+            proc_table.add_column("CPU %", style="magenta")
             for p in top_procs[:15]:
-                proc_table.add_row(str(p.get("pid", "")), p.get("name", "")[:30], f"{p.get('memory_percent', 0):.1f}%", f"{p.get('memory_mb', 0):.1f}")
+                proc_table.add_row(
+                    str(p.get("pid", "")),
+                    p.get("name", "")[:30],
+                    f"{p.get('memory_percent', 0):.1f}%",
+                    f"{p.get('memory_mb', 0):.1f}",
+                    f"{p.get('cpu_percent', 0):.1f}%"
+                )
             console.print(proc_table)
+
+        # Suspicious Processes
+        suspicious = results.get("suspicious_processes", [])
+        if suspicious:
+            console.print(f"\nSuspicious Memory Processes ({len(suspicious)}):")
+            for p in suspicious:
+                console.print(f"  [!] PID {p['pid']} - {p['name']}")
+                for r in p.get("suspicious_reasons", []):
+                    console.print(f"      X {r}")
 
     def fraud_detection_menu(self):
         """Fraud Detection & Phishing Scanner"""
