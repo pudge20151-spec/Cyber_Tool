@@ -2,12 +2,14 @@
 CyberTool Configuration
 """
 import os
+import json
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
 SIGNATURES_DIR = BASE_DIR / "signatures"
 REPORTS_DIR = BASE_DIR / "reports"
 LOGS_DIR = BASE_DIR / "logs"
+SETTINGS_FILE = BASE_DIR / "settings.json"
 
 # Create directories if not exist
 for d in [SIGNATURES_DIR, REPORTS_DIR, LOGS_DIR]:
@@ -106,3 +108,28 @@ IOC_PATTERNS = {
     "hash_sha256": r"\b[a-fA-F0-9]{64}\b",
     "url": r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+[^\s]*",
 }
+
+
+def load_user_settings():
+    """Load user settings from file, fallback to defaults"""
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return DEFAULT_SETTINGS.copy()
+
+
+def save_user_settings(settings):
+    """Save settings to file"""
+    try:
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception:
+        return False
+
+
+# Load on startup
+USER_SETTINGS = load_user_settings()

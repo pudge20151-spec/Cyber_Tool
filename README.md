@@ -227,6 +227,29 @@ CyberTool/
 - `logs/` - Log files
 - `reports/` - Generated reports
 
+## Настройка
+
+### API ключи
+1. Создать файл `settings.json` в корне проекта (или он создастся автоматически)
+2. Добавить:
+```json
+{
+  "api_keys": {
+    "virustotal": "your_key_here",
+    "abuseipdb": "your_key_here"
+  }
+}
+```
+
+### Настройки через UI
+- Изменить кол-во потоков, таймаут в меню Settings
+- Очистить кэш при необходимости
+
+### IOC база
+1. Скачать IOC с abuse.ch, PhishTank, etc.
+2. Положить CSV в любую папку
+3. В приложении: Settings > Load IOC from file
+
 ## Configuration
 
 Edit `config.py` to customize:
@@ -236,6 +259,13 @@ Edit `config.py` to customize:
 - Suspicious string patterns
 - URL shorteners list
 - IOC patterns
+
+Settings can also be saved persistently via `settings.json` using `load_user_settings()` and `save_user_settings()` functions.
+
+## Запуск на Linux
+```bash
+sudo python main.py  # Для сетевого сканирования (port_scan, traceroute требуют root)
+```
 
 ## License
 

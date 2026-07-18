@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-CyberTool v1.0 - Cybersecurity Analysis Toolkit
+CyberTool v0.1 - Cybersecurity Analysis Toolkit
 """
 import sys
 import os
+import signal
 import ipaddress
 from pathlib import Path
 from datetime import datetime
@@ -71,6 +72,20 @@ class CyberTool:
             "threads": 4,
             "timeout": 30,
         }
+        signal.signal(signal.SIGINT, self._shutdown)
+        signal.signal(signal.SIGTERM, self._shutdown)
+
+    def _shutdown(self, sig, frame):
+        """Graceful shutdown on signal"""
+        console.print("\n[yellow]⚠️  Shutting down...[/]")
+        try:
+            db.close()
+            if hasattr(cache, 'close'):
+                cache.close()
+        except Exception as e:
+            logger.error("Shutdown", str(e))
+        console.print("[green]✓ Closed successfully[/]")
+        exit(0)
 
     def clear_screen(self):
         """Clear terminal screen"""
@@ -121,21 +136,21 @@ class CyberTool:
     def print_menu(self):
         """Print main menu"""
         menu = Panel.fit(
-            f"{_("menu_analysis_header")}\n"
-            f"1. {_("menu_file_analysis")}         2. {_("menu_url_analysis")}\n"
-            f"3. {_("menu_ip_intelligence")}      4. {_("menu_network_scan")}\n"
-            f"5. {_("menu_process_monitor")}      6. {_("menu_yara_scan")}\n"
-            f"7. {_("menu_pe_analyzer")}          8. {_("menu_hash_checker")}\n"
-            f"\n{_("menu_advanced_header")}\n"
-            f"V. VirusTotal       B. {_("menu_batch_scanner")}\n"
-            f"W. {_("menu_watchdog")}     D. {_("menu_dns_whois")}\n"
-            f"F. {_("menu_fuzzy_hash")}  I. {_("menu_ioc_feed")}\n"
-            f"C. {_("menu_correlation")}   R. {_("menu_browser_forensics")}\n"
-            f"S. {_("menu_fraud_detection")}      P. {_("menu_phishing_scan")}\n"
-            f"U. {_("menu_usb_forensics")}        M. {_("menu_memory_analysis")}\n"
-            f"\n"
-            f"9. {_("menu_report_generator")}       O. {_("menu_view_reports")}\n"
-            f"T. {_("menu_settings")}             0. {_("menu_exit")}",
+            f'{_("menu_analysis_header")}\n'
+            f'1. {_("menu_file_analysis")}         2. {_("menu_url_analysis")}\n'
+            f'3. {_("menu_ip_intelligence")}      4. {_("menu_network_scan")}\n'
+            f'5. {_("menu_process_monitor")}      6. {_("menu_yara_scan")}\n'
+            f'7. {_("menu_pe_analyzer")}          8. {_("menu_hash_checker")}\n'
+            f'\n{_("menu_advanced_header")}\n'
+            f'V. VirusTotal       B. {_("menu_batch_scanner")}\n'
+            f'W. {_("menu_watchdog")}     D. {_("menu_dns_whois")}\n'
+            f'F. {_("menu_fuzzy_hash")}  I. {_("menu_ioc_feed")}\n'
+            f'C. {_("menu_correlation")}   R. {_("menu_browser_forensics")}\n'
+            f'S. {_("menu_fraud_detection")}      P. {_("menu_phishing_scan")}\n'
+            f'U. {_("menu_usb_forensics")}        M. {_("menu_memory_analysis")}\n'
+            f'\n'
+            f'9. {_("menu_report_generator")}       O. {_("menu_view_reports")}\n'
+            f'T. {_("menu_settings")}             0. {_("menu_exit")}',
             title=f"CyberTool {APP_VERSION} - {_("menu_title")}",
             border_style="blue"
         )
@@ -180,7 +195,7 @@ class CyberTool:
                 "U": self.usb_forensics_menu,
                 "M": self.memory_analysis_menu,
                 "S": self.fraud_detection_menu,
-                "P": self.fraud_detection_menu,
+                "P": self.phishing_scan_menu,
                 "T": self.settings_menu,
                 "0": self.exit_app,
             }
@@ -190,7 +205,7 @@ class CyberTool:
                 action()
 
             if self.running and choice != "0":
-                console.print(f"\n{_("press_enter")}")
+                console.print(f'\n{_("press_enter")}')
                 input()
 
     def file_analysis_menu(self):
@@ -2026,6 +2041,37 @@ class CyberTool:
         if warnings:
             for w in warnings:
                 console.print(f"\n{w}")
+
+    def phishing_scan_menu(self):
+        """Phishing Scan - dedicated phishing analysis"""
+        self.clear_screen()
+        console.print(Panel.fit("Phishing Scan", border_style="red"))
+        fd = FraudDetector()
+        url = Prompt.ask("Enter URL to scan for phishing")
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True) as progress:
+            progress.add_task(description="Scanning for phishing...", total=None)
+            results = fd.analyze_url(url)
+
+        if "error" in results:
+            console.print(f"{results['error']}")
+            return
+
+        self.display_risk_score({"score": results.get("risk_score", 0), "reasons": []})
+        if results.get("risk_level") == "CRITICAL":
+            console.print("\n[bold red]This URL appears to be a PHISHING site![/]")
+        elif results.get("risk_level") == "HIGH":
+            console.print("\n[red]Multiple phishing indicators detected[/]")
+        else:
+            console.print("\n[green]No significant phishing indicators[/]")
+
+        findings = results.get("findings", [])
+        if findings:
+            for f in findings[:5]:
+                console.print(f"  ! {f['description']}")
+        logger.info("PhishingScan", f"Scanned URL: {url}")
 
     def exit_app(self):
         """Exit application"""

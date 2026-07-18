@@ -17,24 +17,37 @@ class YaraScanner:
         """Load YARA rules from file or directory"""
         try:
             import yara
-            if rules_path:
-                if Path(rules_path).is_file():
-                    self.rules = yara.compile(filepath=rules_path)
-                    return True
-                elif Path(rules_path).is_dir():
-                    rule_files = list(Path(rules_path).glob("*.yar")) + list(Path(rules_path).glob("*.yara"))
-                    if rule_files:
-                        # Compile all rules
-                        namespaces = {}
-                        for rf in rule_files:
-                            namespaces[rf.stem] = str(rf)
-                        self.rules = yara.compile(filepaths=namespaces)
-                        return True
-            return False
         except ImportError:
+            logger.error("YaraScanner", "yara-python not installed")
+            return False
+        
+        if rules_path is None:
+            rules_path = SIGNATURES_DIR
+        
+        # Проверить существование
+        if not Path(rules_path).exists():
+            logger.warning("YaraScanner", f"Rules directory {rules_path} not found, creating...")
+            self.create_sample_rule()  # Автоматически создать
+            if not Path(SIGNATURES_DIR / "sample_rules.yar").exists():
+                logger.error("YaraScanner", "Failed to create sample rules")
+                return False
+            rules_path = SIGNATURES_DIR
+        
+        try:
+            if Path(rules_path).is_file():
+                self.rules = yara.compile(filepath=str(rules_path))
+                return True
+            elif Path(rules_path).is_dir():
+                rule_files = list(Path(rules_path).glob("*.yar")) + list(Path(rules_path).glob("*.yara"))
+                if not rule_files:
+                    logger.warning("YaraScanner", "No .yar files found in " + str(rules_path))
+                    return False
+                namespaces = {rf.stem: str(rf) for rf in rule_files}
+                self.rules = yara.compile(filepaths=namespaces)
+                return True
             return False
         except Exception as e:
-            logger.error("YaraScanner", f"Failed to load rules: {e}")
+            logger.error("YaraScanner", f"Failed to compile rules: {e}")
             return False
 
     def scan(self, file_path):

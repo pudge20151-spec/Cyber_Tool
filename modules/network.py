@@ -3,6 +3,7 @@ CyberTool Network Scanner Module
 """
 import socket
 import subprocess
+import os
 from core.logger import logger
 
 
@@ -11,6 +12,21 @@ class NetworkScanner:
 
     def __init__(self):
         self.results = {}
+        self.has_privileges = self._check_privileges()
+
+    def _check_privileges(self):
+        """Check if running with admin/root privileges"""
+        if os.name == 'nt':  # Windows
+            try:
+                import ctypes
+                return ctypes.windll.shell.IsUserAnAdmin()
+            except:
+                return False
+        else:  # Linux/Mac
+            try:
+                return os.geteuid() == 0
+            except:
+                return False
 
     def ping(self, host):
         """Ping a host"""
@@ -51,6 +67,11 @@ class NetworkScanner:
 
     def port_scan(self, host, ports=None):
         """Scan common ports on a host"""
+        if not self.has_privileges:
+            return {
+                "error": "Port scanning requires root/admin privileges (Scapy needs raw sockets)",
+                "hint": "Run with sudo (Linux) or as Administrator (Windows)"
+            }
         if ports is None:
             ports = [21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445,
                      993, 995, 1433, 1521, 2049, 3306, 3389, 5432, 5900, 5985,
@@ -100,6 +121,11 @@ class NetworkScanner:
 
     def traceroute(self, host):
         """Perform traceroute"""
+        if not self.has_privileges:
+            return {
+                "error": "Traceroute requires root/admin privileges (Scapy needs raw sockets)",
+                "hint": "Run with sudo (Linux) or as Administrator (Windows)"
+            }
         self.results = {"host": host, "hops": []}
         try:
             import platform

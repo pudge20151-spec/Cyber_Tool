@@ -709,8 +709,13 @@ class IPLookup:
 
         return results
 
-    def _detect_proxy_vpn(self, ip):
-        """Detect if IP is a proxy, VPN, or Tor exit node"""
+    def _detect_proxy_vpn(self, ip, check_ports=False):
+        """Detect if IP is a proxy, VPN, or Tor exit node
+
+        Args:
+            ip: IP address to check
+            check_ports: If True, check common proxy ports (may trigger IDS/firewall alerts)
+        """
         result = {
             "is_tor": False,
             "is_proxy": False,
@@ -734,23 +739,25 @@ class IPLookup:
         except Exception:
             pass
 
-        # 2. Check common proxy ports
-        try:
-            open_proxy_ports = []
-            for port in self.PROXY_PORTS:
-                try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(1.5)
-                    if sock.connect_ex((ip, port)) == 0:
-                        open_proxy_ports.append(port)
-                    sock.close()
-                except Exception:
-                    pass
-            if open_proxy_ports:
-                result["is_proxy"] = True
-                result["details"].append(f"Open proxy/VPN ports: {open_proxy_ports}")
-        except Exception:
-            pass
+        # 2. Check common proxy ports (only if explicitly requested)
+        if check_ports:
+            logger.warning("IPLookup", f"Port check requested for {ip} - this may trigger IDS/firewall alerts")
+            try:
+                open_proxy_ports = []
+                for port in self.PROXY_PORTS:
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(1.5)
+                        if sock.connect_ex((ip, port)) == 0:
+                            open_proxy_ports.append(port)
+                        sock.close()
+                    except Exception:
+                        pass
+                if open_proxy_ports:
+                    result["is_proxy"] = True
+                    result["details"].append(f"Open proxy/VPN ports: {open_proxy_ports}")
+            except Exception:
+                pass
 
         # 3. Check geo proxy/hosting flags
         geo = self.results.get("geo", {})
@@ -866,8 +873,12 @@ class IPLookup:
 
     def _check_abuseipdb(self, ip):
         """Check IP against AbuseIPDB (requires API key)"""
-        from config import DEFAULT_SETTINGS
-        api_key = DEFAULT_SETTINGS.get("api_keys", {}).get("abuseipdb", "")
+        try:
+            from config import DEFAULT_SETTINGS
+            api_key = DEFAULT_SETTINGS.get("api_keys", {}).get("abuseipdb", "")
+        except (ImportError, KeyError):
+            api_key = ""
+            return None
 
         if not api_key:
             return None

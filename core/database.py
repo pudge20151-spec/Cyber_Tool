@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from config import BASE_DIR
+from core.logger import logger
 
 
 class Database:
@@ -124,6 +125,53 @@ class Database:
             (limit,)
         )
         return cursor.fetchall()
+
+    def load_ioc_from_file(self, file_path):
+        """Load IOC from CSV file (format: hash,type,description,source)"""
+        try:
+            import csv
+            with open(file_path, 'r') as f:
+                reader = csv.DictReader(f)
+                count = 0
+                for row in reader:
+                    hash_val = row.get('hash') or row.get('ioc')
+                    threat_type = row.get('type', 'unknown')
+                    desc = row.get('description', '')
+                    source = row.get('source', 'csv_import')
+                    
+                    if hash_val:
+                        self.add_hash_ioc(hash_val, 'unknown', threat_type, desc, source)
+                        count += 1
+            logger.info("Database", f"Loaded {count} IOC from {file_path}")
+            return count
+        except Exception as e:
+            logger.error("Database", f"Failed to load IOC: {e}")
+            return 0
+
+    def load_ioc_from_url(self, url, ioc_type='hash'):
+        """Load IOC from public feed (e.g., abuse.ch, PhishTank)"""
+        try:
+            import requests
+            response = requests.get(url, timeout=30)
+            if response.status_code == 200:
+                lines = response.text.strip().split('\n')
+                count = 0
+                for line in lines:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        if ioc_type == 'hash':
+                            self.add_hash_ioc(line, 'sha256', 'malware', f'from {url}', 'public_feed')
+                        elif ioc_type == 'domain':
+                            self.add_domain_ioc(line, 'phishing', f'from {url}', 'public_feed')
+                        elif ioc_type == 'ip':
+                            self.add_ip_ioc(line, 'malicious', f'from {url}', 'public_feed')
+                        count += 1
+                logger.info("Database", f"Loaded {count} IOC from {url}")
+                return count
+            return 0
+        except Exception as e:
+            logger.error("Database", f"Failed to load IOC from URL: {e}")
+            return 0
 
     def close(self):
         self.conn.close()
