@@ -136,22 +136,22 @@ class CyberTool:
     def print_menu(self):
         """Print main menu"""
         menu = Panel.fit(
-            f'{_("menu_analysis_header")}\n'
-            f'1. {_("menu_file_analysis")}         2. {_("menu_url_analysis")}\n'
-            f'3. {_("menu_ip_intelligence")}      4. {_("menu_network_scan")}\n'
-            f'5. {_("menu_process_monitor")}      6. {_("menu_yara_scan")}\n'
-            f'7. {_("menu_pe_analyzer")}          8. {_("menu_hash_checker")}\n'
-            f'\n{_("menu_advanced_header")}\n'
-            f'V. VirusTotal       B. {_("menu_batch_scanner")}\n'
-            f'W. {_("menu_watchdog")}     D. {_("menu_dns_whois")}\n'
-            f'F. {_("menu_fuzzy_hash")}  I. {_("menu_ioc_feed")}\n'
-            f'C. {_("menu_correlation")}   R. {_("menu_browser_forensics")}\n'
-            f'S. {_("menu_fraud_detection")}      P. {_("menu_phishing_scan")}\n'
-            f'U. {_("menu_usb_forensics")}        M. {_("menu_memory_analysis")}\n'
-            f'\n'
-            f'9. {_("menu_report_generator")}       O. {_("menu_view_reports")}\n'
-            f'T. {_("menu_settings")}             0. {_("menu_exit")}',
-            title=f'CyberTool {APP_VERSION} - {_("menu_title")}',
+            _('menu_analysis_header') + '\n'
+            '1. ' + _('menu_file_analysis') + '         2. ' + _('menu_url_analysis') + '\n'
+            '3. ' + _('menu_ip_intelligence') + '      4. ' + _('menu_network_scan') + '\n'
+            '5. ' + _('menu_process_monitor') + '      6. ' + _('menu_yara_scan') + '\n'
+            '7. ' + _('menu_pe_analyzer') + '          8. ' + _('menu_hash_checker') + '\n'
+            '\n' + _('menu_advanced_header') + '\n'
+            'V. VirusTotal       B. ' + _('menu_batch_scanner') + '\n'
+            'W. ' + _('menu_watchdog') + '     D. ' + _('menu_dns_whois') + '\n'
+            'F. ' + _('menu_fuzzy_hash') + '  I. ' + _('menu_ioc_feed') + '\n'
+            'C. ' + _('menu_correlation') + '   R. ' + _('menu_browser_forensics') + '\n'
+            'S. ' + _('menu_fraud_detection') + '      P. ' + _('menu_phishing_scan') + '\n'
+            'U. ' + _('menu_usb_forensics') + '        M. ' + _('menu_memory_analysis') + '\n'
+            '\n'
+            '9. ' + _('menu_report_generator') + '       O. ' + _('menu_view_reports') + '\n'
+            'T. ' + _('menu_settings') + '             0. ' + _('menu_exit'),
+            title='CyberTool ' + APP_VERSION + ' - ' + _('menu_title'),
             border_style="blue"
         )
         console.print(menu)
@@ -205,7 +205,7 @@ class CyberTool:
                 action()
 
             if self.running and choice != "0":
-                console.print(f'\n{_("press_enter")}')
+                console.print('\n' + _("press_enter"))
                 input()
 
     def file_analysis_menu(self):
