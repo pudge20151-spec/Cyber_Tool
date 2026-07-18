@@ -102,8 +102,8 @@ pyOpenSSL==24.1.0
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/cybertool.git
-cd cybertool
+git clone https://github.com/pudge20151-spec/Cyber_Tool
+cd Cyber_Tool
 
 # Install dependencies
 pip install -r requirements.txt
