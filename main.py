@@ -151,7 +151,7 @@ class CyberTool:
             f'\n'
             f'9. {_("menu_report_generator")}       O. {_("menu_view_reports")}\n'
             f'T. {_("menu_settings")}             0. {_("menu_exit")}',
-            title=f"CyberTool {APP_VERSION} - {_("menu_title")}",
+            title=f'CyberTool {APP_VERSION} - {_("menu_title")}',
             border_style="blue"
         )
         console.print(menu)
